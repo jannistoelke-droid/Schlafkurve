@@ -1,4 +1,4 @@
-# STATUS – Übergabe an Claude Code (Stand 22.10.2026)
+# STATUS – Übergabe an Claude Code (Stand 22.10.2026, abends)
 
 > **Für Claude Code:** Lies diese Datei zuerst, dann `CLAUDE.md` und `MASTER_PROMPT.md`. Mach genau hier weiter.
 > **Wochenlimit:** Der Nutzer will aufhören, bevor sein Wochenlimit **83 %** erreicht. Du kannst es nicht sehen.
@@ -31,13 +31,16 @@ Ohne Mac/Swift-Compiler geschrieben, sorgfältig, aber erwarte ein paar Compiler
 - `App/Services/SessionController.swift` – Start (Mikro/Alarm-Erlaubnis, Backup-Alarm zuerst), Live-Weckentscheidung, Vorlauf + Ersatzalarm, Stopp/Schlummern, Endauswertung, Watchdog/Heartbeat, Wiederherstellung abgebrochener Nächte
 - `App/Alarm/AlarmService.swift` – AlarmKit (iOS-26-API `AlarmPresentation.Alert(title:secondaryButton:secondaryButtonBehavior:)`, kein Countdown), `StopSleepAlarmIntent`, `SnoozeSleepAlarmIntent`
 - `App/SchlafkurveApp.swift` – `@main`, `Theme`, `Card`, `RootView` (Tabs, Nacht-Vollbild, Bericht-Sheet)
+- `App/Features/` (22.10. abends, nach Apple-Doku geprüft: `AreaMark(x:y:series:stacking:)`, `ChartProxy.plotFrame`/`value(atX:as:)`):
+  `Components` (StatTile, Chip, WaveformView, QualityRing, StageShareBar, HintBanner), `SetupView` (+ `PreflightCheck`-Ampel),
+  `NightView`, `ReportModel` (Stage-Läufe, Lücken, Kurven je Abschnitt), `ReportCharts` (Schlafkurve + Scrubber, Ereignis-Spur mit Tippen → Clip,
+  Schnarch-Balken/15 min, Linien), `ReportView`/`ReportContent`, `RecordingsSection`/`EventRow`, `HistoryView`, `StatsView`, `SettingsView`, `DebugView`
+- App-Icon `App/Assets.xcassets/AppIcon.appiconset` (aus `scripts/make-app-icon.py`), in `project.yml` eingetragen
 
 ## 3. Fehlt noch ❌ (nächste Arbeit, in dieser Reihenfolge)
-1. **Views** in `App/Features/` (RootView verweist schon darauf): `SetupView` (Wecker: Zeitrad, Fenster-Chips, Modus, Zusammenfassung, Checkliste, Start), `NightView` (schwarz, Uhr, Status, Pegel, 1,5-s-Halten zum Beenden, „Guten Morgen“-Knopf wenn `wakeTriggered`), `ReportView(sessionID:)` (Kopf, Swift-Charts-Schlafkurve + Phasenbänder + Ereignis-Spur + Scrubber, Kacheln, Aufnahmen-Liste mit `ClipPlayer`, Stimmung/Notizen), `HistoryView`, `StatsView`, `SettingsView` (inkl. Testsession, Export via `ShareLink`, Neu-Analyse, Debug-Zugang), `DebugView`. Vorgaben: Skill `sleep-report-ui`.
-2. App-Icon (`App/Assets.xcassets/AppIcon.appiconset`, 1024er PNG) und dann `ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon` in `project.yml` wieder eintragen.
-3. Push auf `main` → CI `ios` grün bekommen → IPA laden → Nutzer installiert mit Sideloadly (Phase-0-STOPP aus MASTER_PROMPT).
-4. Gerätetests Phase 2–4 laut `MASTER_PROMPT.md`.
-5. `scripts/ci-screenshots.sh` + Demo-Startargumente (`-demoReport`, `-demoTab`) für den Screenshot-Job; `README.md` für den Nutzer.
+1. Push auf `main` → CI `ios` grün bekommen (Compilerfehler aus Abschnitt 2 beheben) → IPA laden → Nutzer installiert mit Sideloadly (Phase-0-STOPP aus MASTER_PROMPT).
+2. Gerätetests Phase 2–4 laut `MASTER_PROMPT.md`.
+3. `scripts/ci-screenshots.sh` + Demo-Startargumente (`-demoReport`, `-demoTab`) für den Screenshot-Job; `ReportContent(detail:reload:editable:)` ist dafür schon vom Laden getrennt. `README.md` für den Nutzer.
 
 ## 4. Schnittstellen, die die Views nutzen sollen
 - `SessionController.shared` (`@Observable`, im Environment): `phase`, `current`, `liveLevel`, `liveLabel`, `liveStage`, `captureOK`, `wakeTriggered`, `wokeReason`, `pendingReportID`, `lastError`, `debugLines`; `startNight(test:)`, `stopNight()`, `requestNotificationPermission()`, `batteryText()`, `freeMegabytes()`
