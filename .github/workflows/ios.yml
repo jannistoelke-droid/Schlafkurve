@@ -149,7 +149,7 @@ jobs:
           sudo xcode-select -s "${XCODE:-/Applications/Xcode.app}"
       - run: brew install xcodegen && xcodegen generate
       - name: Render screens in the simulator
-        run: scripts/ci-screenshots.sh screenshots
+        run: bash scripts/ci-screenshots.sh screenshots
       - name: Publish screenshots release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -157,3 +157,10 @@ jobs:
           (cd screenshots && zip -qr ../screenshots.zip .)
           gh release delete screenshots --cleanup-tag -y || true
           gh release create screenshots screenshots.zip --title "Screenshots ${{ github.run_number }}" --notes "Simulator-Screenshots" --prerelease
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-logs-${{ github.run_number }}
+          path: build-shots.log
+          retention-days: 7

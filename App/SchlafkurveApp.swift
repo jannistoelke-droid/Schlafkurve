@@ -92,10 +92,28 @@ struct RootView: View {
                 }
             }
         }
-        .task { await controller.launch() }
+        .task {
+            await controller.launch()
+            if DemoData.isActive { await showDemo() }
+        }
         .onChange(of: scenePhase) { _, newPhase in
             controller.scenePhaseChanged(active: newPhase == .active)
             if newPhase == .active { store.reload() }
+        }
+    }
+
+    /// Screenshot mode, see DemoData.
+    private func showDemo() async {
+        await Task.detached { DemoData.seedIfNeeded() }.value
+        store.reload()
+        controller.pendingReportID = nil
+        switch DemoData.tab {
+        case "history": tab = 1
+        case "stats": tab = 2
+        case "settings": tab = 3
+        case "report": controller.pendingReportID = DemoData.reportID
+        case "night": DemoData.showNightScreen(controller)
+        default: tab = 0
         }
     }
 }

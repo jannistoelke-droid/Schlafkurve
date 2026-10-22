@@ -53,41 +53,48 @@ struct ReportContent: View {
 
     var body: some View {
         let model = self.model
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                header
-                if detail.analysis == nil {
-                    HintBanner(text: "Für diese Nacht gibt es noch keine Auswertung. Einstellungen → Alle Nächte neu analysieren.")
-                } else {
-                    chartCard(model)
-                    Card(title: "Schlafphasen") { StageShareBar(summary: summary) }
-                }
-                snoreCard(model)
-                countsRow
-                if summary.meanBreathRate != nil && !model.breathing.isEmpty {
-                    Card(title: "Atmung (geschätzt)") {
-                        Text("Ø \(String(format: "%.1f", summary.meanBreathRate ?? 0)) Atemzüge/min")
-                            .font(.bigNumber(.title3))
-                        NightLineChart(points: model.breathing, model: model, unit: "Atemzüge/min", tint: Theme.color(.light))
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 16) {
+                    header
+                    if detail.analysis == nil {
+                        HintBanner(text: "Für diese Nacht gibt es noch keine Auswertung. Einstellungen → Alle Nächte neu analysieren.")
+                    } else {
+                        chartCard(model).id("chart")
+                        Card(title: "Schlafphasen") { StageShareBar(summary: summary) }.id("phases")
                     }
-                }
-                if !model.noise.isEmpty {
-                    Card(title: "Geräuschpegel (dB über Grundrauschen)") {
-                        NightLineChart(points: model.noise, model: model, unit: "dB", tint: Theme.secondaryText)
+                    snoreCard(model).id("snore")
+                    countsRow
+                    if summary.meanBreathRate != nil && !model.breathing.isEmpty {
+                        Card(title: "Atmung (geschätzt)") {
+                            Text("Ø \(String(format: "%.1f", summary.meanBreathRate ?? 0)) Atemzüge/min")
+                                .font(.bigNumber(.title3))
+                            NightLineChart(points: model.breathing, model: model, unit: "Atemzüge/min", tint: Theme.color(.light))
+                        }
                     }
+                    if !model.noise.isEmpty {
+                        Card(title: "Geräuschpegel (dB über Grundrauschen)") {
+                            NightLineChart(points: model.noise, model: model, unit: "dB", tint: Theme.secondaryText)
+                        }
+                    }
+                    if !meta.gaps.isEmpty || summary.gapSeconds > 0 {
+                        dataQualityCard
+                    }
+                    RecordingsSection(detail: detail, model: model, events: events, editable: editable, reload: reload)
+                        .id("recordings")
+                    if editable { moodCard.id("mood") }
+                    Text("Schätzung aus Geräuschen – kein Medizinprodukt.")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.secondaryText)
+                        .padding(.top, 8)
                 }
-                if !meta.gaps.isEmpty || summary.gapSeconds > 0 {
-                    dataQualityCard
-                }
-                RecordingsSection(detail: detail, model: model, events: events, editable: editable, reload: reload)
-                    .id("recordings")
-                if editable { moodCard }
-                Text("Schätzung aus Geräuschen – kein Medizinprodukt.")
-                    .font(.caption2)
-                    .foregroundStyle(Theme.secondaryText)
-                    .padding(.top, 8)
+                .padding(16)
             }
-            .padding(16)
+            .task {
+                guard DemoData.isActive, let target = DemoData.scrollTarget else { return }
+                try? await Task.sleep(for: .milliseconds(600))
+                proxy.scrollTo(target, anchor: .top)
+            }
         }
         .alert("Eigene Notiz", isPresented: $askTag) {
             TextField("z. B. Spätschicht", text: $newTag)

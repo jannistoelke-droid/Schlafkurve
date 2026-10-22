@@ -38,9 +38,9 @@ Ohne Mac/Swift-Compiler geschrieben, sorgfältig, aber erwarte ein paar Compiler
 - App-Icon `App/Assets.xcassets/AppIcon.appiconset` (aus `scripts/make-app-icon.py`), in `project.yml` eingetragen
 
 ## 3. Fehlt noch ❌ (nächste Arbeit, in dieser Reihenfolge)
-1. Push auf `main` → CI `ios` grün bekommen (Compilerfehler aus Abschnitt 2 beheben) → IPA laden → Nutzer installiert mit Sideloadly (Phase-0-STOPP aus MASTER_PROMPT).
+1. Installation: CI ist grün (Build 3), aber Sideloadly scheitert seit 22.10. an der Apple-Anmeldung (-80046, Apple-weite Sperre für kostenlose Sideload-Tools seit 12.10.). Nutzer will kostenlos bleiben → auf Sideloadly-Update warten, einmal pro Tag probieren. Alternative: Entwicklerkonto 99 €/Jahr + TestFlight.
 2. Gerätetests Phase 2–4 laut `MASTER_PROMPT.md`.
-3. `scripts/ci-screenshots.sh` + Demo-Startargumente (`-demoReport`, `-demoTab`) für den Screenshot-Job; `ReportContent(detail:reload:editable:)` ist dafür schon vom Laden getrennt. `README.md` für den Nutzer.
+3. `README.md` für den Nutzer. Screenshots: `gh workflow run ios.yml -f screenshots=true` → Release `screenshots` (Demo-Modus `App/Services/DemoData.swift`, Skript `scripts/ci-screenshots.sh`).
 
 ## 4. Schnittstellen, die die Views nutzen sollen
 - `SessionController.shared` (`@Observable`, im Environment): `phase`, `current`, `liveLevel`, `liveLabel`, `liveStage`, `captureOK`, `wakeTriggered`, `wokeReason`, `pendingReportID`, `lastError`, `debugLines`; `startNight(test:)`, `stopNight()`, `requestNotificationPermission()`, `batteryText()`, `freeMegabytes()`
