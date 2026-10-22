@@ -13,3 +13,10 @@ Format: `## YYYY-MM-DD – Titel` · Entscheidung · Warum · Verworfene Alterna
 - **Erkennung:** Apples Klangklassifikator (`.version1`) + eigene DSP für Bewegung und Atmung.
 - **Phasen:** transparente Heuristik + HMM; `frames.bin` ermöglicht Re-Analyse in der App und unter Windows.
 - **Daten zurück auf den PC:** In-App-Export (iTunes-Dateifreigabe / iCloud Drive), nie über GitHub.
+
+## 2026-10-22 – Umsetzung Engine + App-Services (Cloud-Session ohne Compiler)
+- **Swift-5-Sprachmodus** statt Swift 6 strict concurrency: es gibt keinen lokalen Compiler, jeder Concurrency-Fehler kostet eine CI-Runde; für eine Einzelnutzer-App ohne Mehrwert.
+- **FFT in reinem Swift** in `SleepEngineCore` statt Accelerate: portabel (Linux-CI, Windows), testbar, < 1 % CPU.
+- **JSON-Dateien statt SwiftData**: weniger Makro-/Migrationsrisiko, Nächte bleiben als Ordner exportierbar.
+- **REM-Zuweisung** nur im Endbericht: lange, ruhige Leichtschlaf-Abschnitte ≥ 60 min nach Einschlafen – mit unregelmäßiger Atmung, oder (ohne messbare Atmung) kurz nach Tiefschlaf bzw. spät in der Nacht.
+- **CI**: Engine-Tests auf Ubuntu (schnell, jeder Push); iOS-Build nur auf `main`; IPA als Release `latest` (öffentlicher Download, Annotations für Compilerfehler).

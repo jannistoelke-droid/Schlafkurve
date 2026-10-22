@@ -1,20 +1,20 @@
-# XcodeGen spec – VORLAGE. Wird auf dem CI-Server mit `xcodegen generate` zur Schlafkurve.xcodeproj.
-# Phase 0: Bundle-ID-Präfix anpassen (einmal festlegen, danach NIE wieder ändern – sonst sind
-# die Daten auf dem iPhone beim nächsten Sideload weg), dann prüfen/ergänzen.
+# XcodeGen spec – becomes Schlafkurve.xcodeproj on CI (`xcodegen generate`).
+# The bundle ID must NEVER change after the first install (Sideloadly keeps the data only for the same ID).
 name: Schlafkurve
 options:
-  bundleIdPrefix: de.CHANGE-ME
   deploymentTarget:
     iOS: "26.0"
   createIntermediateGroups: true
 settings:
   base:
-    SWIFT_VERSION: "6.0"
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
     TARGETED_DEVICE_FAMILY: "1"
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"        # CI overrides with the run number
     CODE_SIGNING_ALLOWED: "NO"          # signing happens later in Sideloadly
     CODE_SIGN_IDENTITY: ""
+    ENABLE_USER_SCRIPT_SANDBOXING: "YES"
 packages:
   SleepEngine:
     path: Packages/SleepEngine
@@ -27,13 +27,8 @@ targets:
     dependencies:
       - package: SleepEngine
         product: SleepEngineCore
-      - package: SleepEngine
-        product: SleepEngineDSP
-      - package: SleepEngine
-        product: SleepEngineAudio
-    scheme: {}
     info:
-      path: App/Info.plist
+      path: Config/Info.plist
       properties:
         CFBundleDisplayName: Schlafkurve
         CFBundleShortVersionString: $(MARKETING_VERSION)
@@ -48,5 +43,14 @@ targets:
         NSAlarmKitUsageDescription: "Schlafkurve weckt dich mit einem Wecker im leichtesten Schlafmoment – auch bei Stummschaltung und Fokus."
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: de.CHANGE-ME.schlafkurve
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        PRODUCT_BUNDLE_IDENTIFIER: de.jt7q.schlafkurve
+        # ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon   # enable once App/Assets.xcassets/AppIcon.appiconset exists
+schemes:
+  Schlafkurve:
+    build:
+      targets:
+        Schlafkurve: all
+    run:
+      config: Debug
+    archive:
+      config: Release
