@@ -29,7 +29,7 @@ Ohne Mac/Swift-Compiler geschrieben, sorgfältig, aber erwarte ein paar Compiler
 - `App/Services/AudioCaptureService.swift` – Session (`.playAndRecord`/`.measurement`, nur im Vordergrund aktiviert), Engine/Tap, Unterbrechungen, Media-Reset, Config-Change, sanfter Vorlauf (Glocken-Ton, Fade)
 - `App/Services/SessionStore.swift` – `SessionFiles` (Dateien, Analyse, ZIP-Export via NSFileCoordinator), `SessionDetail`, `SessionStore`, `ClipPlayer`
 - `App/Services/SessionController.swift` – Start (Mikro/Alarm-Erlaubnis, Backup-Alarm zuerst), Live-Weckentscheidung, Vorlauf + Ersatzalarm, Stopp/Schlummern, Endauswertung, Watchdog/Heartbeat, Wiederherstellung abgebrochener Nächte
-- `App/Alarm/AlarmService.swift` – AlarmKit (iOS-26-API `AlarmPresentation.Alert(title:secondaryButton:secondaryButtonBehavior:)`, kein Countdown), `StopSleepAlarmIntent`, `SnoozeSleepAlarmIntent`
+- `App/Alarm/AlarmService.swift` – AlarmKit (`AlarmPresentation.Alert(title:secondaryButton:…)` erst ab iOS 26.1, darunter die alte Variante mit `stopButton:` per `#available`; kein Countdown), `StopSleepAlarmIntent`, `SnoozeSleepAlarmIntent`
 - `App/SchlafkurveApp.swift` – `@main`, `Theme`, `Card`, `RootView` (Tabs, Nacht-Vollbild, Bericht-Sheet)
 - `App/Features/` (22.10. abends, nach Apple-Doku geprüft: `AreaMark(x:y:series:stacking:)`, `ChartProxy.plotFrame`/`value(atX:as:)`):
   `Components` (StatTile, Chip, WaveformView, QualityRing, StageShareBar, HintBanner), `SetupView` (+ `PreflightCheck`-Ampel),

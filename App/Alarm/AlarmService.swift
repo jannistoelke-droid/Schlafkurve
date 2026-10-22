@@ -113,7 +113,15 @@ final class AlarmService {
         let snooze = AppSettings.snoozeEnabled
         let snoozeButton: AlarmButton? = snooze ? AlarmButton(text: "Schlummern", textColor: .white, systemImageName: "zzz") : nil
         let behavior: AlarmPresentation.Alert.SecondaryButtonBehavior? = snooze ? .custom : nil
-        let alert = AlarmPresentation.Alert(title: "Guten Morgen", secondaryButton: snoozeButton, secondaryButtonBehavior: behavior)
+        let alert: AlarmPresentation.Alert
+        if #available(iOS 26.1, *) {
+            alert = AlarmPresentation.Alert(title: "Guten Morgen", secondaryButton: snoozeButton, secondaryButtonBehavior: behavior)
+        } else {
+            // iOS 26.0 has no system-provided stop button yet
+            let stopButton = AlarmButton(text: "Stopp", textColor: .white, systemImageName: "stop.circle")
+            alert = AlarmPresentation.Alert(title: "Guten Morgen", stopButton: stopButton,
+                                            secondaryButton: snoozeButton, secondaryButtonBehavior: behavior)
+        }
         let attributes = AlarmAttributes<SleepAlarmMetadata>(presentation: AlarmPresentation(alert: alert),
                                                              metadata: SleepAlarmMetadata(sessionID: sessionID),
                                                              tintColor: Color.indigo)
