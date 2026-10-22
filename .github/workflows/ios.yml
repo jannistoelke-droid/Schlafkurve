@@ -1,0 +1,159 @@
+# CI for Schlafkurve – there is no Mac, so GitHub builds everything.
+#  engine: pure-Swift analysis engine, tested on Linux (fast) – every push, every branch
+#  ios:    XcodeGen + unsigned IPA on a macOS runner – main branch and manual runs
+#          The IPA is published as release "latest" (public download, no login needed):
+#          https://github.com/jannistoelke-droid/Schlafkurve/releases/download/latest/Schlafkurve.ipa
+name: CI
+
+on:
+  push:
+    paths-ignore: ["**.md", "docs/**"]
+  workflow_dispatch:
+    inputs:
+      screenshots:
+        description: "Simulator-Screenshots der Hauptscreens erzeugen"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift --version
+      - name: Engine tests
+        run: |
+          set -o pipefail
+          swift test --package-path Packages/SleepEngine 2>&1 | tee engine-test.log | tail -n 80
+      - name: Report failures as annotations
+        if: failure()
+        run: |
+          grep -E "error:|failed|XCTAssert" engine-test.log | grep -v "^\s*$" | sort -u | head -n 45 | while IFS= read -r line; do
+            echo "::error::${line:0:900}"
+          done
+      - name: Synthetic night replay
+        run: swift run --package-path Packages/SleepEngine sleepreplay --synthetic typical
+
+  ios:
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      SCHEME: Schlafkurve
+      PROJECT: Schlafkurve.xcodeproj
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest stable Xcode (no betas)
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_2[6-9]*.app 2>/dev/null | grep -vi -e beta -e rc | sort -V | tail -1)
+          echo "Using ${XCODE:-/Applications/Xcode.app}"
+          sudo xcode-select -s "${XCODE:-/Applications/Xcode.app}"
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: SoundAnalysis labels
+        run: |
+          swift run --package-path Packages/SleepEngine sleepreplay --list-labels > soundanalysis-labels.txt 2>labels-err.log || cat labels-err.log
+          wc -l soundanalysis-labels.txt
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Compile (simulator)
+        run: |
+          STATUS=0
+          xcodebuild -project "$PROJECT" -scheme "$SCHEME" -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/sim CODE_SIGNING_ALLOWED=NO \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} build > build-sim.log 2>&1 || STATUS=$?
+          grep -E "\*\* BUILD" build-sim.log || true
+          if [ $STATUS -ne 0 ]; then
+            grep -E "error:" build-sim.log | sed -E 's#^/Users/runner/work/[^/]+/[^/]+/##' | sort -u | head -n 45 | while IFS= read -r line; do
+              echo "::error::${line:0:900}"
+            done
+          fi
+          exit $STATUS
+
+      - name: Archive unsigned device build
+        run: |
+          STATUS=0
+          xcodebuild archive -project "$PROJECT" -scheme "$SCHEME" -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath build/Schlafkurve.xcarchive \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} > build-archive.log 2>&1 || STATUS=$?
+          grep -E "\*\* ARCHIVE" build-archive.log || true
+          if [ $STATUS -ne 0 ]; then
+            grep -E "error:" build-archive.log | sed -E 's#^/Users/runner/work/[^/]+/[^/]+/##' | sort -u | head -n 45 | while IFS= read -r line; do
+              echo "::error::${line:0:900}"
+            done
+          fi
+          exit $STATUS
+
+      - name: Package IPA
+        run: |
+          mkdir -p build/ipa/Payload
+          cp -R build/Schlafkurve.xcarchive/Products/Applications/Schlafkurve.app build/ipa/Payload/
+          (cd build/ipa && zip -qry ../Schlafkurve.ipa Payload)
+          ls -lh build/Schlafkurve.ipa
+
+      - name: Publish release "latest"
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --cleanup-tag -y || true
+          gh release create latest build/Schlafkurve.ipa soundanalysis-labels.txt \
+            --title "Schlafkurve Build ${{ github.run_number }}" \
+            --notes "Build ${{ github.run_number }} – Commit ${{ github.sha }}. Mit Sideloadly installieren (über die bestehende App)." \
+            --latest
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Schlafkurve-ipa-${{ github.run_number }}
+          path: build/Schlafkurve.ipa
+          retention-days: 14
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ github.run_number }}
+          path: "*.log"
+          retention-days: 7
+
+  screenshots:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.screenshots }}
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select newest stable Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_2[6-9]*.app 2>/dev/null | grep -vi -e beta -e rc | sort -V | tail -1)
+          sudo xcode-select -s "${XCODE:-/Applications/Xcode.app}"
+      - run: brew install xcodegen && xcodegen generate
+      - name: Render screens in the simulator
+        run: scripts/ci-screenshots.sh screenshots
+      - name: Publish screenshots release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          (cd screenshots && zip -qr ../screenshots.zip .)
+          gh release delete screenshots --cleanup-tag -y || true
+          gh release create screenshots screenshots.zip --title "Screenshots ${{ github.run_number }}" --notes "Simulator-Screenshots" --prerelease

@@ -1,0 +1,26 @@
+# generated on CI by XcodeGen
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+build/
+.build/
+.swiftpm/
+
+# downloaded CI artifacts
+dist/
+*.ipa
+screenshots/
+*.log
+
+# PRIVATE: nights exported from the iPhone – never commit (repo may be public)
+device-data/
+replay-out/
+*.m4a
+*.wav
+*.zip
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
